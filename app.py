@@ -540,12 +540,40 @@ if run_it:
     heatmap_path = report.get("heatmap_video_path")
     if heatmap_path:
         st.subheader("🎬 Temporal Heatmap Video")
-        try:
-            st.video(heatmap_path)
-            st.success(f"Temporal heatmap video created successfully!")
-        except Exception as e:
-            st.warning(f"Could not display video inline: {e}")
-            st.write(f"Heatmap video saved at: `{heatmap_path}`")
+        
+        # Check if file exists and has content
+        if os.path.exists(heatmap_path):
+            file_size = os.path.getsize(heatmap_path)
+            st.write(f"📹 Video file: {os.path.basename(heatmap_path)} ({file_size:,} bytes)")
+            
+            if file_size > 1000:  # At least 1KB
+                try:
+                    # Read video file
+                    with open(heatmap_path, 'rb') as video_file:
+                        video_bytes = video_file.read()
+                    
+                    # Display with Streamlit video component
+                    st.video(video_bytes)
+                    st.success("✅ Temporal heatmap video loaded!")
+                    
+                    # Download option
+                    st.download_button(
+                        "📥 Download Heatmap Video",
+                        video_bytes,
+                        file_name=f"temporal_heatmap_{int(time.time())}.mp4",
+                        mime="video/mp4"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Error loading video: {e}")
+                    st.write(f"Video path: `{heatmap_path}`")
+                    st.info("Try downloading the video file to view it externally.")
+            else:
+                st.warning(f"⚠️ Video file is too small ({file_size} bytes) - may be corrupted")
+        else:
+            st.warning("⚠️ Video file was not found")
+    else:
+        st.info("ℹ️ No temporal heatmap video was generated")
     
     # Raw data section (collapsible)
     with st.expander("📋 Raw Analysis Report (JSON)", expanded=False):

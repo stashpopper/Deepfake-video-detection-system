@@ -2,7 +2,7 @@
 # Paste this entire cell. Requires ModelArcAux & build_efficientnetv2m_backbone defined earlier.
 
 from typing import Callable, List, Tuple, Dict, Any, Optional
-import os, json, math, time
+import os, json, math, time, tempfile
 import cv2
 import numpy as np
 from PIL import Image
@@ -644,23 +644,75 @@ def run_multilayer_gradcam_display(
             y0 = (max_h - h_f) // 2
             canvas[y0:y0+h_f, x0:x0+w_f] = f_rgb
             standardized_frames.append(canvas)
-        # write MP4 using OpenCV
-        heatmap_video_path = os.path.join(os.getcwd(), heatmap_name + ".mp4")
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        writer = cv2.VideoWriter(heatmap_video_path, fourcc, float(heatmap_fps), (max_w, max_h))
-        for fr in standardized_frames:
-            # convert RGB->BGR for OpenCV
-            writer.write(cv2.cvtColor(fr, cv2.COLOR_RGB2BGR))
-        writer.release()
+        
+        # Create video using imageio for better Streamlit compatibility
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        heatmap_video_path = os.path.join(temp_dir, heatmap_name + ".mp4")
+        
+        try:
+            # Use imageio for video creation (better Streamlit compatibility)
+            import imageio
+            
+            print(f"Creating video with {len(standardized_frames)} frames at {heatmap_fps} fps")
+            
+            with imageio.get_writer(heatmap_video_path, fps=heatmap_fps, codec='libx264', 
+                                   quality=8, pixelformat='yuv420p') as writer:
+                for i, frame in enumerate(standardized_frames):
+                    # Ensure frame is uint8 RGB
+                    if frame.dtype != np.uint8:
+                        frame = (frame * 255).astype(np.uint8)
+                    writer.append_data(frame)
+            
+            # Verify file creation
+            if os.path.exists(heatmap_video_path):
+                file_size = os.path.getsize(heatmap_video_path)
+                if file_size > 1000:  # At least 1KB
+                    print(f"Video created successfully with imageio: {file_size} bytes")
+                else:
+                    print(f"Warning: Video file very small: {file_size} bytes")
+                    heatmap_video_path = None
+            else:
+                print("Error: Video file was not created")
+                heatmap_video_path = None
+                
+        except Exception as e:
+            print(f"Imageio failed, trying OpenCV: {e}")
+            
+            # Fallback to OpenCV
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                writer = cv2.VideoWriter(heatmap_video_path, fourcc, float(heatmap_fps), (max_w, max_h))
+                
+                if writer.isOpened():
+                    for frame in standardized_frames:
+                        if frame.dtype != np.uint8:
+                            frame = (frame * 255).astype(np.uint8)
+                        bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                        writer.write(bgr_frame)
+                    writer.release()
+                    
+                    if os.path.exists(heatmap_video_path) and os.path.getsize(heatmap_video_path) > 1000:
+                        print("Video created successfully with OpenCV")
+                    else:
+                        heatmap_video_path = None
+                else:
+                    print("OpenCV video writer failed to open")
+                    heatmap_video_path = None
+                    
+            except Exception as e2:
+                print(f"Both imageio and OpenCV failed: {e2}")
+                heatmap_video_path = None
 
         # DISPLAY THE MP4 INLINE IMMEDIATELY (not just print path)
-        try:
-            display(IPyVideo(heatmap_video_path, embed=True))
-        except Exception:
+        if heatmap_video_path and IPYTHON_AVAILABLE:
             try:
-                display(HTML(f'<video controls src="{heatmap_video_path}"></video>'))
+                display(IPyVideo(heatmap_video_path, embed=True))
             except Exception:
-                print("Video created at:", heatmap_video_path)
+                try:
+                    display(HTML(f'<video controls src="{heatmap_video_path}"></video>'))
+                except Exception:
+                    print("Video created at:", heatmap_video_path)
 
     # Attach analysis to report
     report["frames"] = display_rows  # Add this crucial line!
