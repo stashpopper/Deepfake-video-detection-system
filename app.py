@@ -1,4 +1,5 @@
-# app.py
+# Multi-layer Grad-CAM Video Inspector
+# Deepfake Detection with Explainable AI
 import os
 import torch
 
@@ -23,6 +24,17 @@ import numpy as np
 from PIL import Image
 import time
 
+# Configure Streamlit page - MUST be first Streamlit command
+st.set_page_config(
+    page_title="Multi-layer Grad-CAM Video Inspector",
+    page_icon="🎯",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Import model handler for deployment
+from model_handler import get_model_path, show_model_info, handle_missing_model
+
 # ---- IMPORTANT: the big script you pasted should be saved as gradcam_utils.py in the repo root.
 # It must expose:
 #   - run_multilayer_gradcam_display(...)
@@ -36,12 +48,21 @@ from gradcam_utils import (
     init_model_from_checkpoint,
 )
 
-# -------------------- Constants (fixed as requested) --------------------
-IMG_SIZE = 224                          # fixed constant: image size to use for preprocessing (do NOT expose option)
-DEFAULT_MODEL_PATH = "best_staged_model.pth"  # default relative path; can be a URL instead
+# -------------------- Constants and Setup --------------------
+IMG_SIZE = 224                          # fixed constant: image size to use for preprocessing
 CACHE_DIR = Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache")) / "gradcam_streamlit"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
-MODEL_CACHE = CACHE_DIR / Path(DEFAULT_MODEL_PATH).name
+
+# Dynamic model path handling for deployment
+@st.cache_data
+def get_app_info():
+    """Get application information for deployment"""
+    return {
+        "app_name": "Multi-layer Grad-CAM Video Inspector",
+        "version": "1.0.0",
+        "description": "Deepfake detection using multi-layer Grad-CAM analysis",
+        "author": "Deepfake Detection System"
+    }
 
 # -------------------- Utility functions --------------------
 def override_preprocess_for_imgsize(img_size: int):
@@ -60,9 +81,15 @@ def load_model_cached(checkpoint_path: str, device: str = "cpu"):
     Use the init_model_from_checkpoint from gradcam_utils to load and cache the model.
     If checkpoint_path is a URL it will be downloaded once to the cache.
     """
+    if not checkpoint_path:
+        return None
+        
     # handle remote checkpoint URL
     if checkpoint_path.startswith("http://") or checkpoint_path.startswith("https://"):
-        dest = MODEL_CACHE
+        # Create cache path based on the checkpoint filename
+        model_filename = Path(checkpoint_path).name or "model.pth"
+        dest = CACHE_DIR / model_filename
+        
         if not dest.exists():
             import requests
             dest_tmp = dest.with_suffix(".tmp")
@@ -361,16 +388,38 @@ st.markdown(
     """
 )
 
+# ---- Initialize App ----
+app_info = get_app_info()
+st.title(f"🎯 {app_info['app_name']}")
+st.caption(app_info['description'])
+
+# Get model path using deployment handler
+default_model_path = get_model_path()
+
+# Display model info in sidebar
+with st.sidebar:
+    st.header("🤖 Model Status")
+    has_model = show_model_info(default_model_path)
+    
+    if not has_model:
+        st.error("⚠️ No model available - running in demo mode")
+
 # ---- Sidebar controls ----
 with st.sidebar:
-    st.header("Settings & Model (IMG_SIZE locked to 224)")
-    checkpoint_input = st.text_input("Model checkpoint path or URL", value=str(DEFAULT_MODEL_PATH))
+    st.header("⚙️ Analysis Settings")
+    
+    if default_model_path:
+        checkpoint_input = st.text_input("Model checkpoint path or URL", value=str(default_model_path))
+    else:
+        checkpoint_input = st.text_input("Model checkpoint path or URL", 
+                                       placeholder="Enter model path or URL...")
+        
     method = st.selectbox("Grad-CAM method", options=["gradcam++", "gradcam"], index=0)
     num_sampled_frames = st.slider("Number of sampled frames (temporal)", 4, 32, 8, 1)
     threshold = st.slider("Fake threshold (video-level score)", 0.0, 1.0, 0.84, 0.01)
-    use_mediapipe = st.checkbox("Use MediaPipe face-mesh (server must have it)", value=True)
+    use_mediapipe = st.checkbox("Use MediaPipe face-mesh", value=True)
     
-    st.caption("Threading is configured automatically for optimal performance.")
+    st.caption("⚡ Threading configured automatically for optimal performance.")
     st.markdown("---")
     st.markdown("**Advanced**")
     layers_select = st.text_input("Layers to use (comma-separated substrings) — leave empty to auto", value="")
@@ -431,12 +480,15 @@ if run_it:
         st.error("No video provided. Upload a file or click the example button.")
         st.stop()
 
-    # model checkpoint
-    checkpoint_path = checkpoint_input.strip() or DEFAULT_MODEL_PATH
+    # model checkpoint handling
+    checkpoint_path = checkpoint_input.strip() or default_model_path
+    
+    if not checkpoint_path:
+        handle_missing_model()
 
     # show runtime info
-    st.info(f"Using checkpoint: `{checkpoint_path}` — will be cached after first load. Image size = {IMG_SIZE}x{IMG_SIZE}")
-    st.write("Threading:", f"PyTorch configured for optimal CPU performance. OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS')}")
+    st.info(f"🔧 Using checkpoint: `{checkpoint_path}` — will be cached after first load. Image size = {IMG_SIZE}x{IMG_SIZE}")
+    st.write("⚡ Threading:", f"PyTorch configured for optimal CPU performance. OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS')}")
 
     # fixed preprocess to IMG_SIZE=224
     preprocess = override_preprocess_for_imgsize(IMG_SIZE)
