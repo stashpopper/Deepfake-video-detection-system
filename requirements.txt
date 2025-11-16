@@ -1,29 +1,24 @@
-# Core dependencies
-streamlit>=1.28
+# --- Core ---
+streamlit>=1.18
 numpy>=1.24
 pillow>=9.0
 matplotlib>=3.6
 tqdm>=4.64
 imageio>=2.31
-opencv-python-headless>=4.7
-pandas>=2.2
-seaborn>=0.11
-scikit-learn>=1.0
-
-# PyTorch - CPU optimized for deployment
-torch==2.0.1+cpu
-torchvision==0.15.2+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
-
-
-# Computer Vision & ML
-albumentations>=1.3
-mediapipe>=0.10
-# dlib>=19.24  # Commented out - difficult to install on cloud
-
-# Video/Audio processing
-imageio-ffmpeg>=0.4.8
-
-# Utilities
+opencv-python>=4.7
+pandas==2.2.3
+seaborn
+scikit-learn
+mediapipe==0.10.21
+dlib==19.24.6
+albumentations
+imageio
+ipython
+ffmpeg-python>=0.3
 requests>=2.28
 
+# --- PyTorch CPU versions (REQUIRED for Streamlit Cloud) ---
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+torchaudio==2.1.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
