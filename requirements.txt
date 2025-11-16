@@ -10,7 +10,7 @@ pandas==2.2.3
 seaborn
 scikit-learn
 mediapipe==0.10.21
-dlib==19.24.6
+dlib==19.24.5
 albumentations
 
 # Optional - keep only if needed
@@ -24,3 +24,4 @@ torch==2.1.0+cpu
 torchvision==0.16.0+cpu
 torchaudio==2.1.0+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
+
