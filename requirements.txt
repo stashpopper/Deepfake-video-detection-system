@@ -11,8 +11,10 @@ seaborn>=0.11
 scikit-learn>=1.0
 
 # PyTorch - CPU optimized for deployment
-torch>=2.0.0,<2.3.0
-torchvision>=0.15.0,<0.18.0
+torch==2.0.1+cpu
+torchvision==0.15.2+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 
 # Computer Vision & ML
 albumentations>=1.3
@@ -24,3 +26,4 @@ imageio-ffmpeg>=0.4.8
 
 # Utilities
 requests>=2.28
+
