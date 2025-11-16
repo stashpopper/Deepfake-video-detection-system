@@ -10,7 +10,8 @@ pandas==2.2.3
 seaborn
 scikit-learn
 mediapipe==0.10.21
-dlib==19.24.5
+# direct wheel for dlib (or dlib==19.24.5)
+https://files.pythonhosted.org/.../dlib-19.24.5-cp310-cp310-manylinux2014_x86_64.whl
 albumentations
 
 # Optional - keep only if needed
@@ -24,4 +25,5 @@ torch==2.1.0+cpu
 torchvision==0.16.0+cpu
 torchaudio==2.1.0+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
+
 
