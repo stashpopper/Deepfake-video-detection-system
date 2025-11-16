@@ -1,6 +1,6 @@
-# --- Core ---
+# --- Streamlit compatible packages ---
 streamlit>=1.18
-numpy>=1.24
+numpy==1.26.4
 pillow>=9.0
 matplotlib>=3.6
 tqdm>=4.64
@@ -12,12 +12,14 @@ scikit-learn
 mediapipe==0.10.21
 dlib==19.24.6
 albumentations
-imageio
-ipython
-ffmpeg-python>=0.3
+
+# Optional - keep only if needed
+ipython==8.23.0
+ffmpeg-python==0.2.0
+
 requests>=2.28
 
-# --- PyTorch CPU versions (REQUIRED for Streamlit Cloud) ---
+# --- PyTorch CPU versions (Streamlit safe) ---
 torch==2.1.0+cpu
 torchvision==0.16.0+cpu
 torchaudio==2.1.0+cpu
